@@ -300,8 +300,8 @@
           <table class="funnel-table" id="funnel-table"></table>
         </div>
 
-        <h2 class="section-title">AI Funnel Trend &mdash; Last 7 Days</h2>
-        <p class="section-note">Scope: Overall cohort only, Open Funnel basis, 2026-08-10 to 2026-08-16. Does not cover Marketplace / Non-Marketplace splits or the Closed Funnel view.</p>
+        <h2 class="section-title" id="ai-trend-section-title">AI Funnel Trend</h2>
+        <p class="section-note" id="ai-trend-section-note"></p>
         <p class="ai-trend-headline" id="ai-trend-headline"></p>
         <div class="chart-card">
           <div id="ai-trend-chart-container"></div>
@@ -938,6 +938,16 @@ function renderRecommendations() {
 function renderAiFunnelTrend() {
   const d = DATA.ai_funnel_trend;
   if (!d) return;
+
+  const titleEl = document.getElementById('ai-trend-section-title');
+  if (titleEl) titleEl.textContent = 'AI Funnel Trend — Last ' + d.dates.length + ' Days';
+
+  const noteEl = document.getElementById('ai-trend-section-note');
+  if (noteEl) {
+    const cohortLabel = d.cohort === 'OVERALL' ? 'Overall cohort only' : d.cohort;
+    const basisLabel = d.funnel_basis === 'open' ? 'Open Funnel basis' : (d.funnel_basis === 'closed' ? 'Closed Funnel basis' : d.funnel_basis + ' basis');
+    noteEl.textContent = 'Scope: ' + cohortLabel + ', ' + basisLabel + ', ' + d.date_range.start + ' to ' + d.date_range.end + '. Does not cover Marketplace / Non-Marketplace splits or the Closed Funnel view.';
+  }
 
   const headlineEl = document.getElementById('ai-trend-headline');
   if (headlineEl) headlineEl.textContent = d.headline;
