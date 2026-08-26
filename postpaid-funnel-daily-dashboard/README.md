@@ -170,19 +170,32 @@ Each refresh:
 6. Run the ES queries in `prefill_source_query.md` for the Prefill Source Breakdown section (day, plus keep the prior day's numbers for the 2-way comparison until enough history accumulates for real baseline alerting).
 7. Run `campaign_attribution_query.sql` for the Campaign-wise LPV → Lead Creation section, and the Trino + ES queries in `landing_page_errors_queries.md` for the Landing-Page Errors section.
 8. Update `artifacts/data/postpaid-funnel-dashboard-live/dashboard-data.json` (single rolling file, overwritten each refresh — not a dated pull, since it's a live dashboard feed, not a point-in-time analysis artifact). Update all 8 top-level keys from the original funnel plus the 4 extension keys (`pan_prefill`, `prefill_source`, `campaign_traffic`, `landing_page_errors`).
-9. Regenerate `dashboard.html` from the template in this folder and republish via the Artifact tool to the primary URL (recorded below). Copy the same file to `dashboard-v2.html` and republish that too, to keep the backup URL in sync.
+9. Regenerate `dashboard.html` from the template in this folder, render-verify it (function count, jsdom check for the error banner, sections populated), then publish per "Publish procedure" below.
 
-**Dashboard URL (primary as of 2026-08-14):** https://claude.ai/code/artifact/2919d225-651c-403d-afdc-807e941f900a (`dashboard-v2.html`) — private by default, share from the page's share menu if the PM wants to hand it to others.
+## Publish procedure (current, since 2026-08-21)
 
-**Backup URL (`dashboard-v3.html`, kept in sync on every refresh):** https://claude.ai/code/artifact/ff69aee3-c090-4ba1-935c-4d2041b6619e — republish here too if the primary ever hits the "blank after many republishes" failure mode.
+**Live hosting is GitHub → Netlify, not the claude.ai Artifact tool.** The dashboard is served by
+Netlify from the `main` branch of `git@github.com:mohdanasabrar/loc-funnel-dashboard.git`. There is no
+Artifact-tool publish step in a CLI/Claude Code session — that tool does not exist there; it was only
+ever available from a claude.ai web session, and this repo-based flow replaced it entirely as of the
+2026-08-21 refresh (see `artifacts/INDEX.md`'s postpaid-funnel-dashboard-live row).
 
-**Superseded URLs (do not reuse):**
-- https://claude.ai/code/artifact/07bc3521-15c2-4175-8432-b7e5f4838a0e (`dashboard.html`, the ORIGINAL primary) — after many republishes across 2026-08-13/14 this URL started rendering blank while the byte-identical content on a fresh URL rendered fine after the same wait. Demoted to backup-of-a-backup; `dashboard.html` itself is still the canonical local working file (all edits happen here first, then get copied to `dashboard-v2.html`/`dashboard-v3.html` before publishing) — only the *published URL* was rotated, not the file.
-- https://claude.ai/code/artifact/484cb833-7328-4476-9e22-c00c1d686045 — same failure mode, retired 2026-08-13.
+Each refresh, after the workspace files are updated and render-verified:
+1. Clone or `git pull origin main` a working copy of the repo above (any scratch/session directory —
+   it's just a git remote, not tied to any one session).
+2. Sync three things into the clone: `dashboard-data.json` → repo's `data/dashboard-data.json`;
+   `dashboard.html` → repo's `index.html` (root — this is what Netlify actually serves); the whole
+   `knowledge/scripts/postpaid-funnel-daily-dashboard/` folder → repo's
+   `postpaid-funnel-daily-dashboard/` (mirror, keeps the queries/README readable for other contributors
+   browsing the repo).
+3. `git status --short` and sanity-check the diff before committing — expect data/HTML changes only.
+4. Commit (message noting what advanced and what's still stale) and `git push origin main`. Netlify
+   auto-deploys from the push; no separate publish action needed.
 
-**Important nuance learned 2026-08-14 — don't confuse "still loading" with "actually broken":** this page can take 25-30+ seconds to render now that it's grown (4 sections, ~170KB). A blank screenshot at 10-15 seconds is very likely just slow load, not the republish-blank bug. Before concluding a URL has hit the platform quirk: (a) wait at least 25-30 seconds, (b) check the console for zero output (the real quirk shows no console activity at all, whereas slow-load still eventually paints), (c) ideally compare against a fresh test URL with the same content — if the fresh one also takes a while but eventually renders, the original probably would too with more patience. Rotating to a new URL is for confirmed-blank-after-lots-of-republishes cases, not a first resort.
-
-**Refresh procedure note:** copy the verified `dashboard.html` to BOTH `dashboard-v2.html` and `dashboard-v3.html` and publish to both URLs above on every refresh (not just one) — there is no single "the" backup anymore, there are two, and both should stay current.
+**Superseded (do not use — kept only so the "Incident" entries below, which predate the GitHub switch,
+still make sense in context):** the claude.ai Artifact-tool URLs that were the publish target through
+2026-08-20 (`claude.ai/code/artifact/2919d225-...` primary, `.../ff69aee3-...` backup, and two earlier
+retired URLs before that). None of these are maintained or checked anymore.
 
 **Note on `dashboard.html`:** it ends with a `try/catch` around the boot sequence and a `window.onerror` handler that render any exception as a visible on-page banner. Keep this wrapper on every future edit — the Artifact viewer's sandboxed iframe was observed to render a fully blank page (not even static markup) on an uncaught JS exception during initial script execution, with no way to inspect its console from outside. The banner is the only way to see what broke without that access. Note this banner does NOT catch the "blank after many republishes" failure mode above -- that one produces no banner either, which is itself the tell that it's platform-side, not a script error.
 
